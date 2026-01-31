@@ -1,0 +1,40 @@
+{
+    "name": "resolver-interop/interface",
+    "type": "library",
+    "description": "Interoperable autowiring resolver interfaces for PHP.",
+    "keywords": ["autowire", "autowiring", "resolver"],
+    "license": "MIT",
+    "homepage": "https://github/com/resolver-interop/interface",
+    "authors": [
+        {
+            "name": "Paul M. Jones",
+            "email": "pmjones@pmjones.io",
+            "homepage": "https://pmjones.io",
+            "role": "Lead"
+        }
+    ],
+    "require": {
+        "php": "^8.4",
+        "ioc-interop/interface": "1.x@dev"
+    },
+    "autoload": {
+        "psr-4" : {
+            "ResolverInterop\\Interface\\": "src/"
+        }
+    },
+    "require-dev": {
+        "pds/composer-script-names": "^1.0",
+        "pds/skeleton": "^1.0",
+        "phpstan/phpstan": "^2.0",
+        "phpunit/phpunit": "^11.0"
+    },
+    "autoload-dev": {
+        "psr-4" : {
+            "ResolverInterop\\Interface\\": "tests/"
+        }
+    },
+    "scripts": {
+        "analyze": "./vendor/bin/phpstan",
+        "check": "composer analyze"
+    }
+}
