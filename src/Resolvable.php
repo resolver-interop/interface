@@ -6,15 +6,16 @@ namespace ResolverInterop\Interface;
 use IocInterop\Interface\IocContainer;
 
 /**
- * [_InvokableResolver_][] affords resolving the implementing object to a value.
+ * [_Resolvable_][] affords allowing the implementing object to resolve
+ * itself to a value.
  *
  * - Notes:
  *
- *     - **TBD** Use e.g. to defer container calls (i.e. Lazy), then
+ *     - **TBD** Use to defer container calls (i.e. lazy salls), then
  *       can use in $arguments without actually creating anything until the
  *       moment of resolution.
  */
-interface InvokableResolver
+interface Resolvable
 {
     /**
      * Resolves the implementing object to a value.
@@ -23,6 +24,9 @@ interface InvokableResolver
      *
      *     - Implementations MUST throw [_ResolverThrowable_][] if the object
      *       cannot be resolved.
+     *
+     *     - **TBD** Must recursively resolve all Resolvable in the resolved
+     *       value.
      */
-    public function __invoke(IocContainer $ioc) : mixed;
+    public function resolve(IocContainer $ioc) : mixed;
 }

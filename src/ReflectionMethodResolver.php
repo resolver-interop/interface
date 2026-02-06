@@ -11,9 +11,6 @@ use ReflectionMethod;
  *
  * - Notes:
  *
- *     - **TBD** Marks a method for setter injection or post-instantiation
- *       invocation.
- *
  *     - **This interface can be implemented as an attribute.** Doing so allows
  *       implementors to define custom resolution approaches for consumers to
  *       apply to specific [_ReflectionMethod_][]s.
@@ -21,8 +18,7 @@ use ReflectionMethod;
 interface ReflectionMethodResolver
 {
     /**
-     * Invokes the [_ReflectionMethod_][] on the `$object`, returning either the
-     * `$object` itself or a replacement object.
+     * Invokes the [_ReflectionMethod_][] on the `$object`.
      *
      * - Directives:
      *
@@ -34,12 +30,12 @@ interface ReflectionMethodResolver
      *
      * - Notes:
      *
-     *     - **TBD** Implement on `TARGET_METHOD` attributes for setter or
-     *       immutable injection.
+     *     - **TBD** $object is by reference so you can set to a replacement
+     *       object a la immutability.
      */
     public function resolveMethod(
         IocContainer $ioc,
         ReflectionMethod $method,
-        object $object
-    ) : object;
+        object &$object
+    ) : void;
 }

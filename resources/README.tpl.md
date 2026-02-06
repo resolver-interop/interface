@@ -27,29 +27,29 @@ This package defines the following interfaces:
 - Notes:
 
     - **Reference implementations** may be found at
-      <https://github.com/Resolver-Interop/impl>.
+      <https://github.com/resolver-interop/impl>.
 
 ## Q & A
 
 * * *
 
-[_InvokableResolver_]: #invokableresolver
+[_Attribute_]: https://php.net/Attribute
 [_CallResolverService_]: #callresolverservice
-[_ResolverService_]: #resolverservice
 [_Exception_]: https://php.net/Exception
 [_IocContainer_]: https://github.com/ioc-interop/interface/#ioccontainer
+[_ReflectionMethod_]: https://php.net/ReflectionMethod
+[_ReflectionMethodResolver_]: #reflectionmethodresolver
+[_ReflectionParameter_]: https://php.net/ReflectionParameter
 [_ReflectionParameterResolver_]: #reflectionparameterresolver
 [_ReflectionParametersResolver_]: #reflectionparametersresolver
+[_ReflectionProperty_]: https://php.net/ReflectionProperty
 [_ReflectionPropertyResolver_]: #reflectionpropertyresolver
-[_ReflectionMethodResolver_]: #reflectionmethodresolver
+[_ReflectionType_]: https://php.net/ReflectionType
+[_Resolvable_]: #Resolvable
+[_ResolverService_]: #resolverservice
 [_ResolverThrowable_]: #resolverthrowable
 [_Throwable_]: https://php.net/Throwable
 [BCP 14]: https://www.rfc-editor.org/info/bcp14
 [README-RESEARCH.md]: ./README-RESEARCH.md
 [RFC 2119]: https://datatracker.ietf.org/doc/html/rfc2119
 [RFC 8174]: https://datatracker.ietf.org/doc/html/rfc8174
-[_Attribute_]: https://php.net/Attribute
-[_ReflectionNamedType_]: https://php.net/ReflectionNamedType
-[_ReflectionParameter_]: https://php.net/ReflectionParameter
-[_ReflectionProperty_]: https://php.net/ReflectionProperty
-[_ReflectionMethod_]: https://php.net/ReflectionMethod

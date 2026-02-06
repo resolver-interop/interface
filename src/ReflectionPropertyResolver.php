@@ -11,8 +11,6 @@ use ReflectionProperty;
  *
  * - Notes:
  *
- *     - **TBD** Marks a property for injection.
- *
  *     - **This interface can be implemented as an attribute.** Doing so allows
  *       implementors to define custom resolution approaches for consumers to
  *       apply to specific [_ReflectionProperty_][]s.

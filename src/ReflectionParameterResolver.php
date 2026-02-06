@@ -31,10 +31,10 @@ interface ReflectionParameterResolver
      *           [_ReflectionParameterResolver_][], implementations MUST resolve
      *           the `$parameter` using that attribute.
      *
-     *         - Otherwise, if the `$parameter` type is a
-     *           [_ReflectionNamedType_][], and the container has a service for
-     *           that type, implementations MUST resolve the `$parameter` to
-     *           that service.
+     *         - Otherwise, if the `$parameter` type is resolvable using logic
+     *           equivalent to the [_ReflectionService_][] method
+     *           `resolveType()` and the container has a service for that type,
+     *           implementations MUST resolve the `$parameter` to that service.
      *
      *         - Otherwise, implementations MAY attempt to resolve the
      *           `$parameter` using implementation-specific logic; such logic is
