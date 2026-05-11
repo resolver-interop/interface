@@ -6,14 +6,16 @@ namespace ResolverInterop\Interface;
 use IocInterop\Interface\IocContainer;
 
 /**
- * [_Resolvable_][] affords allowing the implementing object to resolve
- * itself to a value.
+ * [_Resolvable_][] affords an implementing object resolving itself to a
+ * value.
  *
  * - Notes:
  *
- *     - **TBD** Use to defer container calls (i.e. lazy salls), then
- *       can use in $arguments without actually creating anything until the
- *       moment of resolution.
+ *     - **Use `Resolvable` to defer container calls.** Wrapping a
+ *       container lookup in a `Resolvable` lets callers pass it in
+ *       `$arguments` without forcing the lookup at construction time;
+ *       the resolver invokes `resolve()` only at the moment of
+ *       parameter resolution.
  */
 interface Resolvable
 {
@@ -24,9 +26,6 @@ interface Resolvable
      *
      *     - Implementations MUST throw [_ResolverThrowable_][] if the object
      *       cannot be resolved.
-     *
-     *     - **TBD** Must recursively resolve all Resolvable in the resolved
-     *       value.
      */
     public function resolve(IocContainer $ioc) : mixed;
 }

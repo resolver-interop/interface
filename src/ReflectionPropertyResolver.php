@@ -22,12 +22,17 @@ interface ReflectionPropertyResolver
      *
      * - Directives:
      *
-     *     - Implementations MUST throw [_ResolverThrowable_][] if the
-     *       `$property` cannot be resolved.
+     *     - Implementations MUST throw [_ResolverThrowable_][] if resolution
+     *       of `$property` is attempted and fails. Orchestrating
+     *       implementations (those that iterate over the properties of a
+     *       class looking for [_ReflectionPropertyResolver_][] attributes)
+     *       MAY skip properties with no applicable attribute; the MUST-throw
+     *       rule applies when resolution is invoked, not when the
+     *       orchestrator declines to invoke it.
      */
     public function resolveProperty(
         IocContainer $ioc,
         ReflectionProperty $property,
-        object $object
+        object $object,
     ) : void;
 }

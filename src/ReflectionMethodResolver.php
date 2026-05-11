@@ -23,19 +23,24 @@ interface ReflectionMethodResolver
      * - Directives:
      *
      *     - Implementations MUST support parameter injection using logic
-     *       equivalent to that specified by [_ReflectionParametersResolver_][].
+     *       equivalent to that specified by the [_ResolverService_][] method
+     *       `resolveParameters()`.
      *
-     *     - Implementations MUST throw [_ResolverThrowable_][] if the
-     *       `$method` cannot be resolved.
+     *     - Implementations MUST throw [_ResolverThrowable_][] if resolution
+     *       of `$method` is attempted and fails. Orchestrating
+     *       implementations (those that iterate over the methods of a class
+     *       looking for [_ReflectionMethodResolver_][] attributes) MAY skip
+     *       methods with no applicable attribute; the MUST-throw rule
+     *       applies when resolution is invoked, not when the orchestrator
+     *       declines to invoke it.
      *
-     * - Notes:
-     *
-     *     - **TBD** $object is by reference so you can set to a replacement
-     *       object a la immutability.
+     *     - Implementations MAY assign a replacement object to `$object` to
+     *       support immutable update patterns (e.g., invoking a `with*()`
+     *       method that returns a modified clone).
      */
     public function resolveMethod(
         IocContainer $ioc,
         ReflectionMethod $method,
-        object &$object
+        object &$object,
     ) : void;
 }

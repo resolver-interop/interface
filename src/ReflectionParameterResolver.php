@@ -29,10 +29,13 @@ interface ReflectionParameterResolver
      *
      *         - If the `$parameter` has an [_Attribute_][] that implements
      *           [_ReflectionParameterResolver_][], implementations MUST resolve
-     *           the `$parameter` using that attribute.
+     *           the `$parameter` using that attribute. If more than one such
+     *           attribute is present, implementations MUST use the first one
+     *           returned by `ReflectionParameter::getAttributes()` and MUST
+     *           ignore the rest.
      *
      *         - Otherwise, if the `$parameter` type is resolvable using logic
-     *           equivalent to the [_ReflectionService_][] method
+     *           equivalent to the [_ResolverService_][] method
      *           `resolveType()` and the container has a service for that type,
      *           implementations MUST resolve the `$parameter` to that service.
      *
@@ -45,6 +48,14 @@ interface ReflectionParameterResolver
      *
      *     - Implementations MUST throw [_ResolverThrowable_][] if the
      *       `$parameter` cannot be resolved.
+     *
+     * - Notes:
+     *
+     *     - **Variadic parameters resolve to a single value.** Implementations
+     *       resolve a variadic `$parameter` once (via attribute, type, or
+     *       default) and return that value as the variadic argument.
+     *       Spreading across multiple variadic slots is not specified by
+     *       this interface.
      */
     public function resolveParameter(
         IocContainer $ioc,

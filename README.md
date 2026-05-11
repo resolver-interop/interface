@@ -21,7 +21,7 @@ This package defines the following interfaces:
 
 - [_ReflectionPropertyResolver_][] affords setting a property on an object.
 
-- [_Resolvable_][] affords allowing the implementing object to resolve itself to a value.
+- [_Resolvable_][] affords an implementing object resolving itself to a value.
 
 - [_ResolverThrowable_][] extends [_Throwable_][] to mark an [_Exception_][] as resolver-related.
 
@@ -29,6 +29,41 @@ This package defines the following interfaces:
 
 [_ResolverService_][] affords resolving classes, calls, parameter arrays, and
 types.
+
+- Notes:
+
+    - **The [_IocContainer_][] first-parameter pattern is intentional.**
+      Unlike most of the surveyed PHP DI/IoC projects, which internalise
+      the container as instance state, this interface passes the
+      container explicitly on every call. Implementations are therefore
+      stateless with respect to a specific container and may be reused
+      across multiple containers (a single resolver shared by a test
+      container and a production container, for example). Implementations
+      that prefer the internalised pattern can wrap a `ResolverService`
+      and inject their own container, but the interface itself does not
+      require it.
+
+    - **Autowiring mode is implementation-defined.** The surveyed PHP
+      DI/IoC projects vary across four modes (Always, Opt-Out, Opt-In,
+      Never). The directives on `resolveClass()`, `resolveCall()`, and
+      `resolveParameter()` describe what an implementation MUST do
+      *when* it attempts autowiring; they do not require any particular
+      mode. An Opt-In implementation may decline to invoke
+      `resolveParameter()` for unannotated parameters; an Opt-Out
+      implementation may do the opposite. The reference implementation
+      uses Always mode.
+
+    - **Parameter resolution is structurally required; property and method
+      resolution are not.** This interface extends
+      [_ReflectionParameterResolver_][] because every `ResolverService`
+      method that constructs or invokes something MUST perform parameter
+      injection. Property and method resolution, by contrast, are MAY
+      directives on `resolveClass()`: implementations advertise support
+      by separately implementing [_ReflectionPropertyResolver_][] and
+      [_ReflectionMethodResolver_][], which consumers detect with an
+      `instanceof` check. The interface hierarchy mirrors that MUST/MAY
+      split rather than forcing every implementation to ship no-op
+      property and method resolvers.
 
 #### _ResolverService_ Methods
 
@@ -43,9 +78,10 @@ types.
 
     - Directives:
 
-        - Implementations MUST support parameter injection on the `$class`
-          constructor using logic equivalent to that specified by
-          `resolveParameters()`.
+        - Implementations MUST resolve the `$class` constructor parameters
+          using logic equivalent to that specified by `resolveParameters()`,
+          including the `$arguments` pre-fill and [_Resolvable_][]-unwrap
+          semantics specified there.
 
         - Implementations MAY support [_ReflectionPropertyResolver_][]
           attributes on the instantiated `$class` properties.
@@ -64,6 +100,17 @@ types.
   ```
     - Does the `$class` exist, and is it instantiable?
 
+    - Notes:
+
+        - **The logic for this method is expressly unspecified.**
+          Implementations may check `class_exists` and
+          `ReflectionClass::isInstantiable()`, or apply stricter rules —
+          e.g., requiring a registered service-name alias, rejecting
+          abstract bases that lack a concrete binding, or excluding
+          PHP-internal classes. Consumers should treat a `true` result
+          as "the implementation is willing to try `resolveClass()`",
+          not as a guarantee that resolution will succeed.
+
 - ```php
   public function resolveCall(
       IocInterop\Interface\IocContainer $ioc,
@@ -75,8 +122,13 @@ types.
 
     - Directives:
 
-        - Implementations MUST support parameter injection on the `$callable`
-          using logic equivalent to that specified by `resolveParameters()`.
+        - Implementations MUST invoke the `$callable` with the resolved
+          arguments and MUST return the result of that invocation.
+
+        - Implementations MUST resolve the `$callable`'s parameters using
+          logic equivalent to that specified by `resolveParameters()`,
+          including the `$arguments` pre-fill and [_Resolvable_][]-unwrap
+          semantics specified there.
 
         - Implementations MUST throw [_ResolverThrowable_][] if the
           `$callable` cannot be resolved.
@@ -101,24 +153,36 @@ types.
           by [_ReflectionParameterResolver_][].
 
         - Implementations MUST retain each resolved [_ReflectionParameter_][]
-          by name in the `$arguments`.
+          by name in the `$arguments`. Pre-filled positional arguments
+          retain their integer keys; only resolver-produced arguments are
+          stored by name.
 
-        - Implementations MUST resolve all [_Resolvable_][] objects in
-          the `$arguments`.
+        - After resolving all [_ReflectionParameter_][]s, implementations
+          MUST unwrap any [_Resolvable_][] value in `$arguments` by
+          calling its `resolve()` method, repeating until no
+          [_Resolvable_][] remains.
 
 - ```php
   public function resolveType(
       IocInterop\Interface\IocContainer $ioc,
-      ReflectionType $type,
+      ?ReflectionType $type,
   ) : ?string;
   ```
-    - Resolves a [_ReflectionType_][] to a string, or `null` if it cannot be
+    - Resolves a [_ReflectionType_][] to a string, or `null` if it cannot
     be resolved.
 
-    - Notes:
+    - Directives:
 
-        - **TBD** Typically only for named types, but may help to convert
-          union and intersection types to a single named type.
+        - For a [_ReflectionNamedType_][], implementations MUST return
+          the type name as produced by `ReflectionNamedType::getName()`.
+
+        - For a [_ReflectionUnionType_][] or
+          [_ReflectionIntersectionType_][], implementations MAY return
+          the name of any branch type — typically one whose name
+          corresponds to a container service. Implementations that
+          decline to inspect compound types MUST return `null`.
+
+        - If `$type` is `null`, implementations MUST return `null`.
 
 ### _ReflectionParameterResolver_
 
@@ -149,10 +213,13 @@ types.
 
             - If the `$parameter` has an [_Attribute_][] that implements
               [_ReflectionParameterResolver_][], implementations MUST resolve
-              the `$parameter` using that attribute.
+              the `$parameter` using that attribute. If more than one such
+              attribute is present, implementations MUST use the first one
+              returned by `ReflectionParameter::getAttributes()` and MUST
+              ignore the rest.
 
             - Otherwise, if the `$parameter` type is resolvable using logic
-              equivalent to the [_ReflectionService_][] method
+              equivalent to the [_ResolverService_][] method
               `resolveType()` and the container has a service for that type,
               implementations MUST resolve the `$parameter` to that service.
 
@@ -165,6 +232,14 @@ types.
 
         - Implementations MUST throw [_ResolverThrowable_][] if the
           `$parameter` cannot be resolved.
+
+    - Notes:
+
+        - **Variadic parameters resolve to a single value.** Implementations
+          resolve a variadic `$parameter` once (via attribute, type, or
+          default) and return that value as the variadic argument.
+          Spreading across multiple variadic slots is not specified by
+          this interface.
 
 ### _ReflectionMethodResolver_
 
@@ -182,7 +257,7 @@ types.
   public function resolveMethod(
       IocInterop\Interface\IocContainer $ioc,
       ReflectionMethod $method,
-      object $object,
+      object &$object,
   ) : void;
   ```
     - Invokes the [_ReflectionMethod_][] on the `$object`.
@@ -190,15 +265,20 @@ types.
     - Directives:
 
         - Implementations MUST support parameter injection using logic
-          equivalent to that specified by [_ReflectionParametersResolver_][].
+          equivalent to that specified by the [_ResolverService_][] method
+          `resolveParameters()`.
 
-        - Implementations MUST throw [_ResolverThrowable_][] if the
-          `$method` cannot be resolved.
+        - Implementations MUST throw [_ResolverThrowable_][] if resolution
+          of `$method` is attempted and fails. Orchestrating
+          implementations (those that iterate over the methods of a class
+          looking for [_ReflectionMethodResolver_][] attributes) MAY skip
+          methods with no applicable attribute; the MUST-throw rule
+          applies when resolution is invoked, not when the orchestrator
+          declines to invoke it.
 
-    - Notes:
-
-        - **TBD** $object is by reference so you can set to a replacement
-          object a la immutability.
+        - Implementations MAY assign a replacement object to `$object` to
+          support immutable update patterns (e.g., invoking a `with*()`
+          method that returns a modified clone).
 
 ### _ReflectionPropertyResolver_
 
@@ -223,19 +303,26 @@ types.
 
     - Directives:
 
-        - Implementations MUST throw [_ResolverThrowable_][] if the
-          `$property` cannot be resolved.
+        - Implementations MUST throw [_ResolverThrowable_][] if resolution
+          of `$property` is attempted and fails. Orchestrating
+          implementations (those that iterate over the properties of a
+          class looking for [_ReflectionPropertyResolver_][] attributes)
+          MAY skip properties with no applicable attribute; the MUST-throw
+          rule applies when resolution is invoked, not when the
+          orchestrator declines to invoke it.
 
 ### _Resolvable_
 
-[_Resolvable_][] affords allowing the implementing object to resolve
-itself to a value.
+[_Resolvable_][] affords an implementing object resolving itself to a
+value.
 
 - Notes:
 
-    - **TBD** Use to defer container calls (i.e. lazy salls), then
-      can use in $arguments without actually creating anything until the
-      moment of resolution.
+    - **Use `Resolvable` to defer container calls.** Wrapping a
+      container lookup in a `Resolvable` lets callers pass it in
+      `$arguments` without forcing the lookup at construction time;
+      the resolver invokes `resolve()` only at the moment of
+      parameter resolution.
 
 #### _Resolvable_ Methods
 
@@ -248,9 +335,6 @@ itself to a value.
 
         - Implementations MUST throw [_ResolverThrowable_][] if the object
           cannot be resolved.
-
-        - **TBD** Must recursively resolve all Resolvable in the resolved
-          value.
 
 ### _ResolverThrowable_
 
@@ -276,18 +360,19 @@ It adds no class members.
 * * *
 
 [_Attribute_]: https://php.net/Attribute
-[_CallResolverService_]: #callresolverservice
 [_Exception_]: https://php.net/Exception
 [_IocContainer_]: https://github.com/ioc-interop/interface/#ioccontainer
+[_ReflectionIntersectionType_]: https://php.net/ReflectionIntersectionType
 [_ReflectionMethod_]: https://php.net/ReflectionMethod
 [_ReflectionMethodResolver_]: #reflectionmethodresolver
+[_ReflectionNamedType_]: https://php.net/ReflectionNamedType
 [_ReflectionParameter_]: https://php.net/ReflectionParameter
 [_ReflectionParameterResolver_]: #reflectionparameterresolver
-[_ReflectionParametersResolver_]: #reflectionparametersresolver
 [_ReflectionProperty_]: https://php.net/ReflectionProperty
 [_ReflectionPropertyResolver_]: #reflectionpropertyresolver
 [_ReflectionType_]: https://php.net/ReflectionType
-[_Resolvable_]: #Resolvable
+[_ReflectionUnionType_]: https://php.net/ReflectionUnionType
+[_Resolvable_]: #resolvable
 [_ResolverService_]: #resolverservice
 [_ResolverThrowable_]: #resolverthrowable
 [_Throwable_]: https://php.net/Throwable

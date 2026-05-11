@@ -34,18 +34,19 @@ This package defines the following interfaces:
 * * *
 
 [_Attribute_]: https://php.net/Attribute
-[_CallResolverService_]: #callresolverservice
 [_Exception_]: https://php.net/Exception
 [_IocContainer_]: https://github.com/ioc-interop/interface/#ioccontainer
+[_ReflectionIntersectionType_]: https://php.net/ReflectionIntersectionType
 [_ReflectionMethod_]: https://php.net/ReflectionMethod
 [_ReflectionMethodResolver_]: #reflectionmethodresolver
+[_ReflectionNamedType_]: https://php.net/ReflectionNamedType
 [_ReflectionParameter_]: https://php.net/ReflectionParameter
 [_ReflectionParameterResolver_]: #reflectionparameterresolver
-[_ReflectionParametersResolver_]: #reflectionparametersresolver
 [_ReflectionProperty_]: https://php.net/ReflectionProperty
 [_ReflectionPropertyResolver_]: #reflectionpropertyresolver
 [_ReflectionType_]: https://php.net/ReflectionType
-[_Resolvable_]: #Resolvable
+[_ReflectionUnionType_]: https://php.net/ReflectionUnionType
+[_Resolvable_]: #resolvable
 [_ResolverService_]: #resolverservice
 [_ResolverThrowable_]: #resolverthrowable
 [_Throwable_]: https://php.net/Throwable
