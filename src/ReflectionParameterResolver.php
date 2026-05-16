@@ -9,14 +9,6 @@ use ReflectionParameter;
 /**
  * [_ReflectionParameterResolver_][] affords resolving a
  * [_ReflectionParameter_][] to an argument value.
- *
- * - Notes:
- *
- *     - **This interface can be implemented as an attribute.** Doing so allows
- *       implementors to define custom resolution approaches for consumers to
- *       apply to specific [_ReflectionParameter_][]s. For example, implementors
- *       may declare a `#[GetEnv($name)]` attribute to resolve the
- *       [_ReflectionParameter_][] to an environment value.
  */
 interface ReflectionParameterResolver
 {
@@ -27,21 +19,20 @@ interface ReflectionParameterResolver
      *
      *     - Implementations MUST resolve the `$parameter` in this order:
      *
-     *         - If the `$parameter` has an [_Attribute_][] that implements
+     *         - If the `$parameter` has one or more [_Attribute_][] that implements
      *           [_ReflectionParameterResolver_][], implementations MUST resolve
-     *           the `$parameter` using that attribute. If more than one such
-     *           attribute is present, implementations MUST use the first one
-     *           returned by `ReflectionParameter::getAttributes()` and MUST
-     *           ignore the rest.
+     *           the `$parameter` using only the first such [_Attribute_][].
      *
      *         - Otherwise, if the `$parameter` type is resolvable using logic
-     *           equivalent to the [_ResolverService_][] method
-     *           `resolveType()` and the container has a service for that type,
-     *           implementations MUST resolve the `$parameter` to that service.
+     *           identical to [_ReflectionTypeResolver_][] **and**
+     *           `$ioc->hasService()` returns `true` for that type,
+     *           implementations MUST resolve the `$parameter` to that service
+     *           via `$ioc->getService()`.
      *
      *         - Otherwise, implementations MAY attempt to resolve the
      *           `$parameter` using implementation-specific logic; such logic is
-     *           not defined herein.
+     *           not defined herein. Implementations MAY skip to the next step
+     *           if the attempt fails.
      *
      *         - Otherwise, if the `$parameter` has a default value,
      *           implementations MUST resolve the `$parameter` to that value.

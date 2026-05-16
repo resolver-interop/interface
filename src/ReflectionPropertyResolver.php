@@ -8,12 +8,6 @@ use ReflectionProperty;
 
 /**
  * [_ReflectionPropertyResolver_][] affords setting a property on an object.
- *
- * - Notes:
- *
- *     - **This interface can be implemented as an attribute.** Doing so allows
- *       implementors to define custom resolution approaches for consumers to
- *       apply to specific [_ReflectionProperty_][]s.
  */
 interface ReflectionPropertyResolver
 {
@@ -21,6 +15,18 @@ interface ReflectionPropertyResolver
      * Sets the [_ReflectionProperty_][] on an object.
      *
      * - Directives:
+     *
+     *     - Implementations MUST set the value of `$property` on `$object`.
+     *
+     *     - If `$property` has an [_Attribute_][] that implements
+     *       [_ReflectionPropertyResolver_][], implementations MUST resolve
+     *       the `$property` using that attribute. If more than one such
+     *       attribute is present, implementations MUST use the first one
+     *       returned by `ReflectionProperty::getAttributes()` and MUST
+     *       ignore the rest.
+     *
+     *     - Implementations MAY support other forms of property resolution
+     *       not specified herein.
      *
      *     - Implementations MUST throw [_ResolverThrowable_][] if resolution
      *       of `$property` is attempted and fails. Orchestrating

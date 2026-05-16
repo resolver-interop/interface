@@ -8,12 +8,6 @@ use ReflectionMethod;
 
 /**
  * [_ReflectionMethodResolver_][] affords invoking a method on an object.
- *
- * - Notes:
- *
- *     - **This interface can be implemented as an attribute.** Doing so allows
- *       implementors to define custom resolution approaches for consumers to
- *       apply to specific [_ReflectionMethod_][]s.
  */
 interface ReflectionMethodResolver
 {
@@ -22,9 +16,12 @@ interface ReflectionMethodResolver
      *
      * - Directives:
      *
+     *     - Implementations MUST invoke `$method` on `$object` with the
+     *       resolved arguments.
+     *
      *     - Implementations MUST support parameter injection using logic
-     *       equivalent to that specified by the [_ResolverService_][] method
-     *       `resolveParameters()`.
+     *       identical to that specified by
+     *       [_ReflectionParametersResolver_][]'s `resolveParameters()`.
      *
      *     - Implementations MUST throw [_ResolverThrowable_][] if resolution
      *       of `$method` is attempted and fails. Orchestrating
@@ -33,14 +30,10 @@ interface ReflectionMethodResolver
      *       methods with no applicable attribute; the MUST-throw rule
      *       applies when resolution is invoked, not when the orchestrator
      *       declines to invoke it.
-     *
-     *     - Implementations MAY assign a replacement object to `$object` to
-     *       support immutable update patterns (e.g., invoking a `with*()`
-     *       method that returns a modified clone).
      */
     public function resolveMethod(
         IocContainer $ioc,
         ReflectionMethod $method,
-        object &$object,
+        object $object,
     ) : void;
 }
