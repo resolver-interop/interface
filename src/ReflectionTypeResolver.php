@@ -8,38 +8,35 @@ use ReflectionType;
 
 /**
  * [_ReflectionTypeResolver_][] affords resolving a [_ReflectionType_][] to a
- * single class-string, or `null` if it cannot be resolved.
+ * `string` name, or `null` if it cannot be resolved.
  */
 interface ReflectionTypeResolver
 {
     /**
-     * Resolves a [_ReflectionType_][] to a single class-string, or `null` if it
+     * Resolves a [_ReflectionType_][] to a `string` name, or `null` if it
      * cannot be resolved.
      *
      * - Directives:
      *
      *     - If `$type` is `null`, implementations MUST return `null`.
      *
-     *     - For a [_ReflectionNamedType_][] ...
+     *     - Otherwise, if `$type` is a [_ReflectionNamedType_][],
+     *       implementations MUST return the type name as produced by
+     *       its `getName()` method.
      *
-     *         - Implementations MUST return the type name as produced by
-     *           `ReflectionNamedType::getName()` if the name identifies a
-     *           class, interface, trait, or enum.
+     *     - Otherwise, the logic for determining the return type name is
+     *       implementation-defined.
      *
-     *         - Implementations MAY return the name as-is, MAY return `null`, or MAY
-     *           transform it (e.g., resolving `self` to the declaring
-     *           class name) if the name is a PHP built-in scalar (`int`,
-     *           `string`, `bool`, `float`, `array`, `object`, `iterable`,
-     *           etc.) or pseudo-type (`mixed`, `void`, `never`, `null`,
-     *           `self`, `static`, `parent`). The choice is implementation-
-     *           defined and implementations SHOULD document their
-     *           behaviour.
+     * - Notes:
      *
-     *     - For a [_ReflectionUnionType_][] or
-     *       [_ReflectionIntersectionType_][], implementations MAY return
-     *       the name of any branch type, typically one whose name
-     *       corresponds to a service from `$ioc`. Implementations that
-     *       decline to inspect compound types MUST return `null`.
+     *     - **Compound and other type handling is left to the implementation.**
+     *       For example, [_ReflectionUnionType_][] and
+     *       [_ReflectionIntersectionType_][] handling may vary between
+     *       implementations: one might iterate the branches and return the
+     *       first whose name corresponds to an `$ioc` service name; another
+     *       might return the compound stringification (e.g. `"Foo|Bar"`) and
+     *       let the container lookup handle it; yet another might return `null`
+     *       out of hand.
      */
     public function resolveType(
         IocContainer $ioc,

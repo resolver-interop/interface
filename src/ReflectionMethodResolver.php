@@ -7,7 +7,13 @@ use IocInterop\Interface\IocContainer;
 use ReflectionMethod;
 
 /**
- * [_ReflectionMethodResolver_][] affords invoking a method on an object.
+ * [_ReflectionMethodResolver_][] affords method injection when implemented
+ * on a method-targeted [_Attribute_][].
+ *
+ * - Directives:
+ *
+ *     - An [_Attribute_][] implementing this interface MUST NOT be declared
+ *       with `Attribute::IS_REPEATABLE`.
  */
 interface ReflectionMethodResolver
 {
@@ -16,20 +22,14 @@ interface ReflectionMethodResolver
      *
      * - Directives:
      *
+     *     - Implementations MUST support parameter injection using logic
+     *       identical to that specified by [_ReflectionParametersResolver_][].
+     *
      *     - Implementations MUST invoke `$method` on `$object` with the
      *       resolved arguments.
      *
-     *     - Implementations MUST support parameter injection using logic
-     *       identical to that specified by
-     *       [_ReflectionParametersResolver_][]'s `resolveParameters()`.
-     *
      *     - Implementations MUST throw [_ResolverThrowable_][] if resolution
-     *       of `$method` is attempted and fails. Orchestrating
-     *       implementations (those that iterate over the methods of a class
-     *       looking for [_ReflectionMethodResolver_][] attributes) MAY skip
-     *       methods with no applicable attribute; the MUST-throw rule
-     *       applies when resolution is invoked, not when the orchestrator
-     *       declines to invoke it.
+     *       fails.
      */
     public function resolveMethod(
         IocContainer $ioc,

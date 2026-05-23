@@ -9,6 +9,14 @@ use ReflectionParameter;
 /**
  * [_ReflectionParameterResolver_][] affords resolving a
  * [_ReflectionParameter_][] to an argument value.
+ *
+ * This interface is also suitable for implementation on an [_Attribute_][] to
+ * resolve a custom argument on a parameter.
+ *
+ * - Directives:
+ *
+ *     - An [_Attribute_][] implementing this interface MUST NOT be declared
+ *       with `Attribute::IS_REPEATABLE`.
  */
 interface ReflectionParameterResolver
 {
@@ -25,14 +33,13 @@ interface ReflectionParameterResolver
      *
      *         - Otherwise, if the `$parameter` type is resolvable using logic
      *           identical to [_ReflectionTypeResolver_][] **and**
-     *           `$ioc->hasService()` returns `true` for that type,
+     *           `$ioc->hasService()` returns `true` for that resolved type,
      *           implementations MUST resolve the `$parameter` to that service
      *           via `$ioc->getService()`.
      *
      *         - Otherwise, implementations MAY attempt to resolve the
      *           `$parameter` using implementation-specific logic; such logic is
-     *           not defined herein. Implementations MAY skip to the next step
-     *           if the attempt fails.
+     *           not defined herein.
      *
      *         - Otherwise, if the `$parameter` has a default value,
      *           implementations MUST resolve the `$parameter` to that value.

@@ -18,13 +18,13 @@ interface ClassResolver
      *
      *     - Implementations MUST resolve the `$class` constructor parameters
      *       using logic identical to that specified by
-     *       [_ReflectionParametersResolver_].
+     *       [_ReflectionParametersResolver_][].
      *
-     *     - Implementations MAY support [_ReflectionPropertyResolver_][]
-     *       attributes on the instantiated `$class` properties.
+     *     - Implementations MAY support property injection using logic
+     *       identical to that specified by [_ReflectionPropertiesResolver_][].
      *
-     *     - Implementations MAY support [_ReflectionMethodResolver_][]
-     *       attributes on the instantiated `$class` methods.
+     *     - Implementations MAY support method injection using logic
+     *       identical to that specified by [_ReflectionMethodsResolver_][].
      *
      *     - Implementations MAY support other forms of injection not specified
      *       herein.

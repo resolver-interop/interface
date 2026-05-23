@@ -16,14 +16,14 @@ interface CallResolver
      *
      * - Directives:
      *
-     *     - Implementations MUST invoke the `$callable` with the resolved
-     *       arguments and MUST return the result of that invocation.
-     *
      *     - Implementations MUST resolve the `$callable`'s parameters using
      *       logic identical to that specified by
      *       [_ReflectionParametersResolver_][]'s `resolveParameters()`,
      *       including the `$arguments` pre-fill and [_Resolvable_][]-unwrap
      *       semantics specified there.
+     *
+     *     - Implementations MUST invoke the `$callable` with the resolved
+     *       `$arguments` and MUST return the result of that invocation.
      *
      *     - Implementations MUST throw [_ResolverThrowable_][] if the
      *       `$callable` cannot be resolved.

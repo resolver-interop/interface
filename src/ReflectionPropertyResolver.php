@@ -7,7 +7,13 @@ use IocInterop\Interface\IocContainer;
 use ReflectionProperty;
 
 /**
- * [_ReflectionPropertyResolver_][] affords setting a property on an object.
+ * [_ReflectionPropertyResolver_][] affords property injection when implemented
+ * on a property-targeted [_Attribute_][].
+ *
+ * - Directives:
+ *
+ *     - An [_Attribute_][] implementing this interface MUST NOT be declared
+ *       with `Attribute::IS_REPEATABLE`.
  */
 interface ReflectionPropertyResolver
 {
@@ -16,25 +22,19 @@ interface ReflectionPropertyResolver
      *
      * - Directives:
      *
-     *     - Implementations MUST set the value of `$property` on `$object`.
+     *     - Implementations MUST resolve the `$property` in this order:
      *
-     *     - If `$property` has an [_Attribute_][] that implements
-     *       [_ReflectionPropertyResolver_][], implementations MUST resolve
-     *       the `$property` using that attribute. If more than one such
-     *       attribute is present, implementations MUST use the first one
-     *       returned by `ReflectionProperty::getAttributes()` and MUST
-     *       ignore the rest.
+     *         - Implementations MAY attempt to resolve the `$property` using
+     *           implementation-specific logic; such logic is not defined
+     *           herein.
      *
-     *     - Implementations MAY support other forms of property resolution
-     *       not specified herein.
+     *         - Otherwise, implementations MUST resolve the `$property` to the
+     *           [_IocContainer_][] service whose name matches the property
+     *           type as produced by [_ReflectionTypeResolver_][], via
+     *           `$ioc->getService()`.
      *
      *     - Implementations MUST throw [_ResolverThrowable_][] if resolution
-     *       of `$property` is attempted and fails. Orchestrating
-     *       implementations (those that iterate over the properties of a
-     *       class looking for [_ReflectionPropertyResolver_][] attributes)
-     *       MAY skip properties with no applicable attribute; the MUST-throw
-     *       rule applies when resolution is invoked, not when the
-     *       orchestrator declines to invoke it.
+     *       of `$property` is attempted and fails.
      */
     public function resolveProperty(
         IocContainer $ioc,

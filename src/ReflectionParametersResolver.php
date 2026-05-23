@@ -8,7 +8,7 @@ use ReflectionParameter;
 
 /**
  * [_ReflectionParametersResolver_][] affords resolving an array of
- * [_ReflectionParameter_][]s into an array of arguments.
+ * [_ReflectionParameter_][] instances into an array of arguments.
  */
 interface ReflectionParametersResolver
 {

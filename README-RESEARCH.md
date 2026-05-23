@@ -481,7 +481,7 @@ container by type alone — the container is keyed by class names, not by
 when the resolver encounters a builtin-typed parameter, where does the
 value come from?
 
-The near-universal answer is **not from the container by type**. Builtins
+The universal answer is **not from the container by type alone**. Builtins
 flow through the call-arg array, per-class pre-configuration, the
 parameter's default value, or (rarely) a dedicated builtin-injection
 mechanism. A required builtin parameter with no source is an error in
@@ -502,7 +502,7 @@ every surveyed library.
 | ray          | no | `#[Named('qualifier')]` qualifier routing to bound value, module bindings, default |
 | rdlowrey     | no | call args with `:name` prefix (raw literal — bare name keys are service ids), `defineParam($name, $value)` global, default |
 | symfony      | no by type; **yes via `#[Autowire]`** | `#[Autowire(value:)]`, `#[Autowire(env:)]`, `#[Autowire(param:)]`, `#[Autowire(expression:)]`, default |
-| tempest      | **yes via `Initializer`** | registered `Initializer<T>` for type or `#[Tag]`-routed, call args, default |
+| tempest      | **only via `#[Tag]`+`Initializer`** | tagged `Initializer<T>` resolved by `#[Tag]` name, call args, default |
 | yii-injector | no | **named call args only** (numeric integer keys must be objects; scalars excluded from the positional pool) |
 
 Per-project notes:
@@ -533,20 +533,20 @@ Per-project notes:
 
 - **symfony** — Builtins are filtered out of type-based autowiring at compile time. The `#[Autowire]` attribute is the canonical mechanism, accepting **exactly one** of five named arguments: `value:` (literal), `service:` (service id reference), `expression:` (ExpressionLanguage expression), `env:` (environment-variable expansion), or `param:` (parameter-bag entry). The `lazy:` flag is orthogonal and may combine with any of the five.
 
-- **tempest** — The only surveyed lib that **autowires builtins from the container by type**. The `Initializer<T>` interface has one method, `initialize(Container $container): mixed`, returning a value of type `T`. Registered initializers are invoked at resolution time for any builtin-typed parameter (with `#[Tag]` selecting among multiple initializers registered for the same type). This treats builtins symmetrically with class types — a meaningful divergence from the rest of the survey.
+- **tempest** — The closest the survey has to a container-driven builtin path, but it is **gated by `#[Tag]`**, not by the type. `GenericContainer::autowireBuiltinDependency()` consults `Initializer<T>` only when the parameter carries a `#[Tag]` attribute; the lookup key is `resolveTaggedName($typeName, $tag->name)`, never the bare type name. Without `#[Tag]`, builtins fall through to the provided value → default → error, like every other surveyed lib. The `Initializer<T>` interface itself (one method, `initialize(Container): mixed`) is general — what makes builtin support possible is the tag-keyed registry, not type-symmetry with class autowiring. Tempest's class-typed path is more permissive (untagged `DynamicInitializer`s exist for class types); the builtin path is strictly tag-gated.
 
 - **yii-injector** — Named call args carry scalars. The integer-keyed pool **must contain objects** (the runtime throws `InvalidArgumentException` on a non-object integer-keyed entry), so builtins cannot be injected by position. No container fallback for builtin types.
 
 Common patterns:
 
-- **Container-by-type for builtins is essentially absent.** Tempest is the only outlier, and it requires explicit `Initializer` registration — there is no inference from the type alone.
+- **Container-by-type for builtins is absent across the survey.** Tempest is the closest, but its `Initializer<T>` lookup for builtins is keyed by `#[Tag]` on the parameter (`resolveTaggedName($typeName, $tag->name)`), not by the bare type — so even tempest does not reduce a builtin from the type alone.
 - **The call-arg array is the most consistent runtime source.** Every lib that has a call-arg surface accepts scalars there, with rdlowrey's "bare name keys are service ids" wrinkle as the lone exception.
 - **Compile-time / config-time scalar definitions** appear in libs with a configuration phase: laminas (`setParameters`), nette (`*.neon arguments`), php-di (`\DI\value()`), symfony (`#[Autowire]` at compile pass).
 - **Required builtin without a source is an error in every lib.** None silently injects `null` for a required, non-nullable builtin.
 
 Synthesis:
 
-- A single-class type-reducing operation can safely return "nothing" for builtin / pseudo types — every surveyed lib except tempest treats them as not container-resolvable by type, and tempest's `Initializer` pattern is opt-in. An implementation that wants tempest-style behavior can layer it above the reducer.
+- A single-class type-reducing operation can safely return `null` for builtin / pseudo types — no surveyed lib resolves a builtin from the type alone. Tempest's tagged-`Initializer<T>` pattern requires `#[Tag]` on the parameter and operates one layer up at the parameter-resolver layer, where the attribute is visible. An implementation that wants tempest-style behavior layers it above the type reducer.
 - The **arguments array** is the principal runtime source for builtin values across the survey — consistent with the prevalent practice.
 - **Attribute-driven scalar injection** (`#[Value]`, `#[Inject(id)]`, `#[Autowire(value:)]`) is widespread enough to warrant an attribute step in the per-parameter resolution chain.
 
@@ -900,6 +900,91 @@ Synthesis:
 - **Every surveyed setter mutates in place.** No lib implements with-clone setter injection (a `with*()` method returning a modified clone), and to the best of our knowledge no major DI/IoC container in any other language formalizes it either. Pass-by-value for the target object matches universal practice across DI ecosystems.
 - **Method injection and property injection are mechanically parallel but distinct.** Most libs that do both treat them separately rather than as one combined operation — favoring two operations over one.
 - **Arbitrary callable invocation (pattern B)** is well-supported across the survey (nine libs — see `## Autowire a callable`). It is consistent to separate "invoke this callable with autowiring" from "apply this method-call to this object" as two operations.
+
+## Editorial stance on post-construction injection
+
+The previous section documented *which* libraries support method / property injection. This section captures *what each library's own documentation says* about when to use post-construction injection relative to constructor injection — explicit preferences, warnings, refusals, or recommended scenarios.
+
+Per-project notes:
+
+- **aura** — Silent. The setter docs state only that "the Container supports setter injection in addition to constructor injection. (These can be combined as needed.)" No editorial preference is published.
+
+- **flightphp**, **ghostwriter**, **illuminate**, **joomla**, **mindplay**, **yii-injector** — Silent. These libs implement constructor-only by design but do not publish doc-level statements explaining or defending the choice.
+
+- **laminas** — Explicit constructor-first. ServiceManager docs: "we encourage you to inject all necessary dependencies via the constructor, using factories. If some dependencies use setter or interface injection, use delegator factories." Setter / interface injection is positioned as a workaround pathway requiring a delegator factory, not a peer mechanism.
+
+- **league** — Silent. The `Inflector` documentation describes the mechanism without recommendation or warning.
+
+- **nette** — Explicit hierarchy. Constructor injection "is suitable for mandatory dependencies that the class absolutely requires"; setter injection "is suitable for optional dependencies … as it's not guaranteed that the object will actually receive the dependency"; property injection (public properties with `#[Inject]`) is "considered inappropriate because the member property must be declared as `public`." Summary: "Public properties are generally not recommended."
+
+- **phpdi** — Nuanced split by class role. For services, "we recommend using constructor injection and autowiring." For controllers, property injection via attributes is "the solution we recommend," on the grounds that controllers contain no business logic, are not unit-tested in isolation, and may need rewriting if the framework changes. The doc openly states the costs: "injecting in a private property breaks encapsulation," "it is not an explicit dependency," and using attributes makes the class "dependent on the container."
+
+- **ray** — Silent on comparison; refuses property injection outright. The injections doc explicitly states "Ray.Di does not support property injection." Method injection via `#[Inject]` is documented mechanically without a stated preference relative to the constructor.
+
+- **rdlowrey** — Explicit constructor-first. README: "Constructor injection is almost always preferable to setter injection." `Injector::prepare()` is framed as an exception for "some APIs [that] require additional post-instantiation mutations" — not a standard practice.
+
+- **symfony** — Explicit hierarchy and the most detailed published guidance. Constructor injection is the default ("the constructor is only called once when the object is created, so you can be sure that the dependency will not change during the object's lifetime"). Setter / immutable-setter injection is recommended specifically for **optional** dependencies, for trait-based composition, and for collections built via repeated calls. Property injection draws the strongest warning: "There are mainly only disadvantages to using property injection… You cannot control when the dependency is set at all, it can be changed at any point in the object's lifetime." The `#[Required]` doc itself acknowledges "property injection having some drawbacks."
+
+- **tempest** — Silent. Constructor injection appears in examples; no editorial stance on property injection (its sole post-construction mechanism) is published.
+
+Patterns:
+
+- **Explicit "prefer constructor" doc voice**: laminas, nette, phpdi (for services), rdlowrey, symfony — five libs.
+- **Silent / agnostic in published docs**: aura, league, ray (comparative), tempest, plus the constructor-only libs that publish no rationale (flightphp, ghostwriter, illuminate, joomla, mindplay, yii-injector).
+- **Endorses post-construction injection conditionally**: phpdi (controllers), nette (optional deps), symfony (optional deps, traits, collections).
+- **Endorses property injection specifically**: phpdi, for controllers only.
+- **Refuses property injection by design**: ray-di.
+
+Recurring conditional-use scenarios — wherever a lib publishes a positive case for post-construction injection, the cited scenario is one of:
+
+1. **Optional dependencies** that the class can function without (symfony, nette).
+2. **Framework-bound, non-tested code** such as controllers (phpdi).
+3. **Cyclic / mutually-referential services** that cannot be assembled purely through constructors (symfony immutable-setter).
+4. **Collection building** via repeated calls that add many dependencies to the same target (symfony).
+5. **Third-party code** with already-public properties (symfony).
+6. **Trait-based composition** where the trait carries a setter (symfony immutable-setter).
+
+Synthesis:
+
+- **Constructor injection is the documented default across the ecosystem.** No surveyed lib recommends post-construction injection as the primary mechanism for ordinary services.
+- **Method / setter injection is treated as a subordinate mechanism** reserved for documented exception cases. Where libs publish a stance, that stance is consistent: optional deps, collections, cyclic deps.
+- **Property injection draws stronger warnings than method injection.** Three libs warn explicitly (nette "inappropriate," phpdi "breaks encapsulation … not an explicit dependency," symfony "mainly only disadvantages"), one refuses to implement it (ray-di), and only one endorses it conditionally (phpdi, for controllers).
+- **Silence is consistent with the "prefer constructor" stance, not against it.** Libs that publish no comparative guidance still document constructor injection as the primary mechanism in examples and surface area; none promote post-construction injection as the default.
+- **The asymmetry between method injection and property injection is consistent across the libs that comment on it.** Method injection is "for optional dependencies"; property injection is "mainly only disadvantages" / "inappropriate" / "breaks encapsulation". Method injection is treated as a legitimate-but-narrow mechanism; property injection as a last resort.
+
+## Resolver-attribute mechanics
+
+The previous sections covered *whether* libs use attributes and *what their docs say*. This section captures the mechanical details of attribute-driven resolution in the surveyed libs — discovery patterns and declaration flags — because those mechanics inform two directives in the spec: the `MUST NOT be IS_REPEATABLE` rule on each resolver-attribute interface, and the interface-based discovery pattern the spec adopts.
+
+Discovery patterns (where verified by reading source):
+
+- **symfony** — `AutowireRequiredMethodsPass` discovers via `$r->getAttributes(Required::class)`. Single-class lookup, `break` after first detection.
+- **phpdi** — `AttributeBasedAutowiring` uses `$method->getAttributes(Inject::class)[0] ?? null`. Single-class lookup with explicit `[0]` for first-wins.
+- **league** — `ArgumentReflectorTrait::reflectArguments()` iterates `$param->getAttributes()` (no class filter), then uses `continue 2` after the first matching attribute resolves. Operationally first-wins.
+
+Declaration repeatability across all surveyed resolver attributes:
+
+| lib       | attribute    | targets                                                      | repeatable? |
+|-----------|--------------|--------------------------------------------------------------|-------------|
+| symfony   | `#[Required]`  | `TARGET_METHOD \| TARGET_PROPERTY`                             | no          |
+| symfony   | `#[Autowire]`  | `TARGET_PARAMETER`                                             | no          |
+| phpdi     | `#[Inject]`    | `TARGET_PROPERTY \| TARGET_METHOD \| TARGET_PARAMETER`         | no          |
+| nette     | `#[Inject]`    | `TARGET_PROPERTY`                                              | no          |
+| ray       | `#[Inject]`    | `TARGET_METHOD \| TARGET_PARAMETER`                            | no          |
+| tempest   | `#[Inject]`    | `TARGET_PROPERTY`                                              | no          |
+| league    | `#[Inject]`    | `TARGET_PARAMETER`                                             | **yes**     |
+
+Synthesis:
+
+- **Discovery is single-class lookup wherever verified.** No surveyed lib uses interface-based attribute discovery (`ReflectionAttribute::IS_INSTANCEOF`) for resolver attributes. The attribute serves as a *marker* that the framework looks up by exact class; the framework owns the resolution logic. The attribute itself carries no resolution behavior.
+
+- **Declared repeatability is rare and operationally inert.** Six of seven surveyed resolver attributes are non-repeatable. League's `#[Inject]` is the lone exception, but its resolution code stops at the first matching attribute regardless, so the `IS_REPEATABLE` flag has no observable effect.
+
+- **Operational behavior is first-wins, universally.** No surveyed lib invokes resolution multiple times from multiple attributes on a single target — either the declaration disallows it (most cases) or the resolution code ignores subsequent attributes (league).
+
+- **The spec's interface-based discovery pattern is novel.** Using `getAttributes(ReflectionMethodResolver::class, ReflectionAttribute::IS_INSTANCEOF)` to find any attribute implementing a resolver interface is a deliberate departure from surveyed practice, where every lib hard-codes a specific marker-attribute class. The departure gives consumers more flexibility (any attribute class can be a resolver) but creates a situation no surveyed lib faces: multiple distinct attribute classes implementing the same resolver interface on a single target. The spec's "only the first such Attribute" rule handles that situation conservatively.
+
+- **The spec's `MUST NOT be IS_REPEATABLE` directive aligns with operational rather than declared practice.** Surveyed resolution code is first-wins regardless of declared repeatability, so the directive codifies what the ecosystem actually does, even where one lib's declaration would permit otherwise.
 
 ## Contextual binding / type preferences
 
